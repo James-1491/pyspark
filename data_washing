@@ -1,0 +1,20 @@
+from pyspark import SparkConf
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as f
+
+def data_process(raw_data_path):
+    spark = SparkSession.builder.config(conf=SparkConf()).getOrCreate()
+    business = spark.read.json(raw_data_path)
+
+    # 简化categories列的处理，并进行城市筛选与空值移除
+    business = business.withColumn("categories", f.split(business['categories'], ','))\
+                       .filter(business["city"] != "").dropna()
+
+     # 保存结果为Parquet格式
+    business.write.parquet("file:///Biz_ETL", mode="overwrite")
+
+if __name__ == "__main__":
+    raw_hdfs_path = 'file:///business.json'
+    print("Start cleaning raw data!")
+    data_process(raw_hdfs_path)
+    print("Successfully done")
